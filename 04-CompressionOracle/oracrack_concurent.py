@@ -10,24 +10,24 @@ guess_repeats = 15
 fill_size = 8
 rounds = 20
 
-def generate_fill(N): 
-    return ''.join(random.choices(alphabeth, k=N))
+class payload_generator:
+    def generate_fill(N): 
+        return ''.join(random.choices(alphabeth, k=N))
+    def generate_payloads(self):
+        # random fills are the same for all payloads to minimize the influence of randomness
+        # payloads differ only on the position of chars currently guessed
+        first_fill = self.generate_fill(fill_size)
+        payloads = [first_fill for c in alphabeth]
+        for _ in range(guess_repeats):
+            fill = self.generate_fill(fill_size)                                     
+            payloads = [ p+ flag+c+fill for p,c in zip(payloads,alphabeth)]
+        return payloads
 
 def send(payload):
     return requests.post("http://krypto.ptera.cz/depressed_oracle.php", data={"plaintext": payload})
 
-def generate_payloads():
-    # random fills are the same for all payloads to minimize the influence of randomness
-    # payloads differ only on the position of chars currently guessed
-    first_fill = generate_fill(fill_size)
-    payloads = [first_fill for c in alphabeth]
-    for _ in range(guess_repeats):
-        fill = generate_fill(fill_size)                                     
-        payloads = [ p+ flag+c+fill for p,c in zip(payloads,alphabeth)]
-    return payloads
-
 def question_round(executor):
-    payloads = generate_payloads()
+    payloads = payload_generator.generate_payloads()
     candidates =[]
     
     responses = list(executor.map(send, payloads)) # runs send() for each payload in parallel using threads/processes
@@ -57,6 +57,7 @@ def get_candidates(rounds):
 
 
 while True:
+
     candidates = get_candidates(rounds)
 
     print("current flag guess is: ", flag)

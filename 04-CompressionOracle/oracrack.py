@@ -35,17 +35,32 @@ class PayloadGenerator:
         payloads = [first_fill for _ in alphabeth]
         for _ in range(self.guess_repeats):
             fill = self.__generate_fill(self.fill_size)                                     
-            payloads = [ p + flag_guess + c + fill for p, c in zip(payloads, alphabeth)]
+            payloads = [ p + flag_guess + c + self.__generate_fill(self.fill_size) for p, c in zip(payloads, alphabeth)]
+#            payloads = [ p + flag_guess + c + fill for p, c in zip(payloads, alphabeth)]
         return payloads
 
 class ParallelRequest:
     def __init__(self, threads):
         self.threads = threads
-        self.executor = ThreadPoolExecutor(max_workers = len(alphabeth))
+        self.executor = ThreadPoolExecutor(max_workers = threads)
     
-    def post(self,url, payloads):
+    def _post(self,url, payloads):
         responses = self.executor.map(lambda payload:requests.post(url, data={"plaintext": payload}), payloads)
         responses = list(responses) # order of responses does NOT get shuffled
+        
+        for response in responses:
+            if response.status_code // 100 !=2:
+                print("bad response: ", response.status_code)
+        return responses
+    def post(self,url, payloads):
+        responses =[]
+        for payload in payloads:
+            responses.append(requests.post(url, data={"plaintext": payload}))
+
+        
+        for response in responses:
+            if response.status_code // 100 !=2:
+                print("bad response: ", response.status_code)
         return responses
 
 class ResultAggregator:
@@ -105,8 +120,8 @@ class ResultAggregator:
 
 # alphabeth =  "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_}|{=[]<>-/\°;,?!.#@&$*"
 alphabeth =  "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_}{" # maybe we'll get better results if we ommit characters which are likely not there. Who knows...
-flag = "KRYPTO"
-rounds = 10
+flag = "KRYPTO{0H_G0D"
+rounds = 1
 
 aggregator_methods={
     "sum":      ResultAggregator.sum,
